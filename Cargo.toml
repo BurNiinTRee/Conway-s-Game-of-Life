@@ -1,0 +1,8 @@
+[package]
+name = "gol"
+version = "0.1.0"
+authors = ["Lars Muehmel <larsmuehmel@web.de>"]
+
+[dependencies]
+sdl2 = "0.23.0"
+rand = "0.3.14"
