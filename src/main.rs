@@ -106,6 +106,7 @@ fn main() {
     }
 
     'running: loop {
+        let timer = thread::spawn(|| thread::sleep(time::Duration::from_millis(FRAMETIME)));
         let frametimer = time::Instant::now();
         for event in events.poll_iter() {
             match event {
@@ -176,7 +177,7 @@ fn main() {
 
 
 
-        thread::sleep(time::Duration::from_millis(FRAMETIME));
+        timer.join();
 
     }
 }
