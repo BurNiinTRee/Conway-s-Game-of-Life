@@ -1,3 +1,5 @@
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
 extern crate sdl2;
 extern crate rand;
 
@@ -45,7 +47,7 @@ fn init<'a>() -> (Renderer<'a>, EventPump) {
     (renderer, event_pump)
 }
 
-fn get_cell(cells: &Vec<bool>, i: usize) -> Option<bool> {
+fn get_cell(cells: &[bool], i: usize) -> Option<bool> {
     let (x, y) = get_coords(i);
     if let Some(i) = get_index(x, y) {
         Some(cells[i])
@@ -54,7 +56,7 @@ fn get_cell(cells: &Vec<bool>, i: usize) -> Option<bool> {
     }
 }
 
-fn count_neighbors(cells: &Vec<bool>, i: usize) -> i32 {
+fn count_neighbors(cells: &[bool], i: usize) -> i32 {
     let mut counter = 0;
     let (origx, origy) = get_coords(i);
     for ty in -1isize..2isize {
@@ -107,23 +109,22 @@ fn main() {
 
     'running: loop {
         let timer = thread::spawn(|| thread::sleep(time::Duration::from_millis(FRAMETIME)));
-        let frametimer = time::Instant::now();
         for event in events.poll_iter() {
             match event {
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } |
                 Event::Quit { .. } => break 'running,
                 Event::KeyDown { keycode: Some(Keycode::Space), .. } => paused = !paused,
                 Event::KeyDown { keycode: Some(Keycode::F), .. } => {
-                    for cell in cells.iter_mut() {
+                    for cell in &mut cells {
                         *cell = true;
                     }
                 }
                 Event::KeyDown { keycode: Some(Keycode::C), .. } => {
-                    for cell in cells.iter_mut() {
+                    for cell in &mut cells {
                         *cell = false;
                     }
                 }
-                Event::MouseButtonDown { x: x, y: y, .. } => {
+                Event::MouseButtonDown { x, y, .. } => {
                     if paused {
                         toggle_field(x as isize, y as isize, &mut cells);
                     }
@@ -158,26 +159,15 @@ fn main() {
                     } else {
                         cells[i] = true;
                     }
+                } else if neighbors == 3 {
+                    cells[i] = true;
                 } else {
-                    if neighbors == 3 {
-                        cells[i] = true;
-                    } else {
-                        cells[i] = false;
-                    }
+                    cells[i] = false;
+
                 }
             }
         }
-
-
-
-
-
-
-
-
-
-
-        timer.join();
+        timer.join().unwrap();
 
     }
 }

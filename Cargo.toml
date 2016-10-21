@@ -6,3 +6,7 @@ authors = ["Lars Muehmel <larsmuehmel@web.de>"]
 [dependencies]
 sdl2 = "0.23.0"
 rand = "0.3.14"
+clippy = {version = "*", optional = true}
+
+[features]
+default = []
