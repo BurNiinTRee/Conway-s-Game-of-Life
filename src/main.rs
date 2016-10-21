@@ -16,12 +16,12 @@ use sdl2::render::Renderer;
 use sdl2::EventPump;
 
 
-const MAX_X: usize = 49;
-const MAX_Y: usize = 49;
-const CELL_WIDTH: isize = 25;
-const CELL_HEIGHT: isize = 25;
+const MAX_X: usize = 199;
+const MAX_Y: usize = 199;
+const CELL_WIDTH: isize = 5;
+const CELL_HEIGHT: isize = 5;
 const NCELLS: usize = (MAX_Y + 1) * (MAX_X + 1);
-const FRAMETIME: u64 = 100;
+const FRAMETIME: u64 = 1000 / 30;
 
 
 fn init<'a>() -> (Renderer<'a>, EventPump) {
