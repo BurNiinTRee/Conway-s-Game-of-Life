@@ -2,9 +2,12 @@
 #![cfg_attr(feature="clippy", plugin(clippy))]
 extern crate sdl2;
 extern crate rand;
+extern crate rayon;
 
 
 use std::{thread, time};
+
+use rayon::prelude::*;
 
 use rand::Rng;
 
@@ -115,14 +118,14 @@ fn main() {
                 Event::Quit { .. } => break 'running,
                 Event::KeyDown { keycode: Some(Keycode::Space), .. } => paused = !paused,
                 Event::KeyDown { keycode: Some(Keycode::F), .. } => {
-                    for cell in &mut cells {
+                    cells.par_iter_mut().for_each(|cell| {
                         *cell = true;
-                    }
+                    });
                 }
                 Event::KeyDown { keycode: Some(Keycode::C), .. } => {
-                    for cell in &mut cells {
+                    cells.par_iter_mut().for_each(|cell| {
                         *cell = false;
-                    }
+                    });
                 }
                 Event::MouseButtonDown { x, y, .. } => {
                     if paused {
@@ -151,21 +154,21 @@ fn main() {
 
         if !paused {
             let old_cells = cells.clone();
-            for (cell, i) in old_cells.iter().zip(0usize..(NCELLS as usize)) {
+            cells.par_iter_mut().enumerate().for_each(|(i, cell)| {
                 let neighbors = count_neighbors(&old_cells, i);
-                if *cell {
+                if old_cells[i] {
                     if neighbors < 2 || neighbors > 3 {
-                        cells[i] = false;
+                        *cell = false;
                     } else {
-                        cells[i] = true;
+                        *cell = true;
                     }
                 } else if neighbors == 3 {
-                    cells[i] = true;
+                    *cell = true;
                 } else {
-                    cells[i] = false;
+                    *cell = false;
 
                 }
-            }
+            });
         }
         timer.join().unwrap();
 

@@ -6,6 +6,7 @@ authors = ["Lars Muehmel <larsmuehmel@web.de>"]
 [dependencies]
 sdl2 = "0.23.0"
 rand = "0.3.14"
+rayon = "*"
 clippy = {version = "*", optional = true}
 
 [features]
