@@ -1,8 +1,13 @@
+//! TODO
+//! replace all constants with fields of gol!!
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
 extern crate sdl2;
 extern crate rand;
 extern crate rayon;
+#[macro_use]
+extern crate clap;
+
 
 
 use std::{thread, time};
@@ -19,21 +24,26 @@ use sdl2::render::Renderer;
 use sdl2::EventPump;
 
 
-const MAX_X: usize = 199;
-const MAX_Y: usize = 199;
-const CELL_WIDTH: isize = 5;
-const CELL_HEIGHT: isize = 5;
-const NCELLS: usize = (MAX_Y + 1) * (MAX_X + 1);
-const FRAMETIME: u64 = 1000 / 30;
+#[derive(Debug, Copy, Clone)]
+struct Gol {
+    max_x: usize,
+    max_y: usize,
+    cell_width: isize,
+    cell_height: isize,
+    ncells: usize,
+    frametime: u64,
+    verbose: bool,
+}
 
 
-fn init<'a>() -> (Renderer<'a>, EventPump) {
+
+fn init<'a>(gol: Gol) -> (Renderer<'a>, EventPump) {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
     let window = video_subsystem.window("Conway's Game of Life",
-                ((MAX_X + 1) * CELL_WIDTH as usize) as u32,
-                ((MAX_Y + 1) * CELL_HEIGHT as usize) as u32)
+                ((gol.max_x + 1) * gol.cell_width as usize) as u32,
+                ((gol.max_y + 1) * gol.cell_height as usize) as u32)
         .position_centered()
         .opengl()
         .build()
@@ -50,22 +60,22 @@ fn init<'a>() -> (Renderer<'a>, EventPump) {
     (renderer, event_pump)
 }
 
-fn get_cell(cells: &[bool], i: usize) -> Option<bool> {
-    let (x, y) = get_coords(i);
-    if let Some(i) = get_index(x, y) {
+fn get_cell(cells: &[bool], i: usize, gol: Gol) -> Option<bool> {
+    let (x, y) = get_coords(i, gol);
+    if let Some(i) = get_index(x, y, gol) {
         Some(cells[i])
     } else {
         None
     }
 }
 
-fn count_neighbors(cells: &[bool], i: usize) -> i32 {
+fn count_neighbors(cells: &[bool], i: usize, gol: Gol) -> i32 {
     let mut counter = 0;
-    let (origx, origy) = get_coords(i);
+    let (origx, origy) = get_coords(i, gol);
     for ty in -1isize..2isize {
         for tx in (-1isize..2isize).filter(|tx| *tx != 0 || ty != 0) {
-            if let Some(i) = get_index((origx as isize + tx), origy as isize + ty) {
-                if let Some(x) = get_cell(cells, i) {
+            if let Some(i) = get_index((origx as isize + tx), origy as isize + ty, gol) {
+                if let Some(x) = get_cell(cells, i, gol) {
                     if x {
                         counter += 1;
                     }
@@ -77,41 +87,90 @@ fn count_neighbors(cells: &[bool], i: usize) -> i32 {
 }
 
 
-fn toggle_field(x: isize, y: isize, cells: &mut Vec<bool>) {
-    let cell_x = x / CELL_WIDTH;
-    let cell_y = y / CELL_HEIGHT;
-    cells[get_index(cell_x, cell_y).unwrap()] = !cells[get_index(cell_x, cell_y).unwrap()]
+fn toggle_field(x: isize, y: isize, cells: &mut Vec<bool>, gol: Gol) {
+    let cell_x = x / gol.cell_width;
+    let cell_y = y / gol.cell_height;
+    cells[get_index(cell_x, cell_y, gol).unwrap()] = !cells[get_index(cell_x, cell_y, gol).unwrap()]
 }
 
 
 
-fn get_index(x: isize, y: isize) -> Option<usize> {
-    if x < 0 || y < 0 || x > MAX_X as isize || y > MAX_Y as isize {
+fn get_index(x: isize, y: isize, gol: Gol) -> Option<usize> {
+    if x < 0 || y < 0 || x > gol.max_x as isize || y > gol.max_y as isize {
         None
     } else {
-        Some((x + (y * (MAX_X + 1) as isize)) as usize)
+        Some((x + (y * (gol.max_x + 1) as isize)) as usize)
     }
 }
 
-fn get_coords(i: usize) -> (isize, isize) {
-    ((i % (MAX_X + 1)) as isize, (i / (MAX_X + 1)) as isize)
+fn get_coords(i: usize, gol: Gol) -> (isize, isize) {
+    ((i % (gol.max_x + 1)) as isize, (i / (gol.max_x + 1)) as isize)
 }
 
 
 fn main() {
+    let matches = clap_app!(gol =>
+        (version: "0.1")
+        (author: "Lars Mühmel <larsmuehmel@web.de")
+        (about: "Conway's Game of Life in Rust")
+        (@arg max_x: -x +takes_value "Sets the amount of horizontall cells")
+        (@arg max_y: -y +takes_value "Sets the amount of verticall cells")
+        (@arg cell_width: -w --width +takes_value "Sets the width of a single cell")
+        (@arg cell_height: -h --height +takes_value "Sets the height of a single cell")
+        (@arg framerate: -f --framerate +takes_value "Sets the number of generations per second")
+        (@arg verbose: -v --verbose "Sets, wether or not the actual framerate should be printed to stdout")
+        ).get_matches();
+
+    println!("{:?}", matches);
+    // create a settings struct
+    let mut gol: Gol = Gol {
+        max_x: 199,
+        max_y: 199,
+        frametime: 1000 / 30,
+        ncells: 200 * 200,
+        cell_width: 5,
+        cell_height: 5,
+        verbose: false,
+    };
+
+    if let Some(Ok(x)) = matches.value_of("max_x").map(str::parse::<usize>) {
+        gol.max_x = x - 1;
+    }
+    if let Some(Ok(x)) = matches.value_of("max_y").map(str::parse::<usize>) {
+        gol.max_y = x - 1;
+    }
+    gol.ncells = (gol.max_x + 1) * (gol.max_y + 1);
+    if let Some(Ok(x)) = matches.value_of("frametime").map(str::parse::<u64>) {
+        if x == 0 {
+            gol.frametime = 0;
+        } else {
+            gol.frametime = 1000 / x;
+        }
+    }
+    if let Some(Ok(x)) = matches.value_of("cell_width").map(str::parse) {
+        gol.cell_width = x;
+    }
+    if let Some(Ok(x)) = matches.value_of("cell_height").map(str::parse) {
+        gol.cell_height = x;
+    }
+    if matches.occurrences_of("verbose") != 0 {
+        gol.verbose = true;
+    }
     let mut rng = rand::thread_rng();
-    let (mut r, mut events) = init();
+    let (mut r, mut events) = init(gol);
     let bg = Color::RGB(0xff, 0xff, 0xff);
     let fg = Color::RGB(0, 0, 0);
-    let mut cells: Vec<bool> = Vec::with_capacity(NCELLS as usize);
+    let mut cells: Vec<bool> = Vec::with_capacity(gol.ncells as usize);
     let mut paused: bool = false;
 
-    for _ in 0..NCELLS {
+    for _ in 0..gol.ncells {
         cells.push(rng.gen());
     }
 
     'running: loop {
-        let timer = thread::spawn(|| thread::sleep(time::Duration::from_millis(FRAMETIME)));
+        let frametimer = time::Instant::now();
+        let timer =
+            thread::spawn(move || thread::sleep(time::Duration::from_millis(gol.frametime)));
         for event in events.poll_iter() {
             match event {
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } |
@@ -129,7 +188,7 @@ fn main() {
                 }
                 Event::MouseButtonDown { x, y, .. } => {
                     if paused {
-                        toggle_field(x as isize, y as isize, &mut cells);
+                        toggle_field(x as isize, y as isize, &mut cells, gol);
                     }
                 }
                 _ => {}
@@ -139,13 +198,13 @@ fn main() {
         r.set_draw_color(bg);
         r.clear();
         r.set_draw_color(fg);
-        for (cell, i) in cells.iter().zip(0..NCELLS) {
+        for (cell, i) in cells.iter().zip(0..gol.ncells) {
             if *cell {
-                let (x, y) = get_coords(i);
-                r.fill_rect(Rect::new((x * CELL_WIDTH) as i32,
-                                         (y * CELL_HEIGHT) as i32,
-                                         CELL_WIDTH as u32,
-                                         CELL_HEIGHT as u32))
+                let (x, y) = get_coords(i, gol);
+                r.fill_rect(Rect::new((x * gol.cell_width) as i32,
+                                         (y * gol.cell_height) as i32,
+                                         gol.cell_width as u32,
+                                         gol.cell_height as u32))
                     .unwrap();
             }
         }
@@ -155,7 +214,7 @@ fn main() {
         if !paused {
             let old_cells = cells.clone();
             cells.par_iter_mut().enumerate().for_each(|(i, cell)| {
-                let neighbors = count_neighbors(&old_cells, i);
+                let neighbors = count_neighbors(&old_cells, i, gol);
                 if old_cells[i] {
                     if neighbors < 2 || neighbors > 3 {
                         *cell = false;
@@ -171,6 +230,10 @@ fn main() {
             });
         }
         timer.join().unwrap();
+        if gol.verbose {
+            println!("Framerate:\t{:5}",
+                     1_000_000_000 / frametimer.elapsed().subsec_nanos());
+        }
 
     }
 }
