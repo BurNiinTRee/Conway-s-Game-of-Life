@@ -2,6 +2,7 @@
 name = "gol"
 version = "0.1.0"
 authors = ["Lars Muehmel <larsmuehmel@web.de>"]
+build = "build.rs"
 
 [dependencies]
 sdl2 = "0.23.0"
@@ -10,5 +11,7 @@ rayon = "*"
 clap = "2.16"
 clippy = {version = "*", optional = true}
 
+[build-dependencies]
+clap = "2.16"
 [features]
 default = []
