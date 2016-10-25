@@ -6,8 +6,7 @@
             "type": "gdb",
             "request": "launch",
             "target": "./target/debug/gol",
-            "cwd": "${workspaceRoot}",
-            "terminal": "termite"
+            "cwd": "${workspaceRoot}"
         }
     ]
 }

@@ -120,8 +120,6 @@ fn main() {
         (@arg framerate: -f --framerate +takes_value "Sets the number of generations per second")
         (@arg verbose: -v --verbose "Sets, wether or not the actual framerate should be printed to stdout")
         ).get_matches();
-
-    println!("{:?}", matches);
     // create a settings struct
     let mut gol: Gol = Gol {
         max_x: 199,
