@@ -140,7 +140,7 @@ fn main() {
         gol.max_y = x - 1;
     }
     gol.ncells = (gol.max_x + 1) * (gol.max_y + 1);
-    if let Some(Ok(x)) = matches.value_of("frametime").map(str::parse::<u64>) {
+    if let Some(Ok(x)) = matches.value_of("framerate").map(str::parse::<u64>) {
         if x == 0 {
             gol.frametime = 0;
         } else {
