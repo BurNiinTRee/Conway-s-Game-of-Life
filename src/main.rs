@@ -227,7 +227,9 @@ fn main() {
                 }
             });
         }
-        timer.join().unwrap();
+        if !paused {
+            timer.join().unwrap();
+        }
         if gol.verbose {
             println!("Framerate:\t{:5}",
                      1_000_000_000 / frametimer.elapsed().subsec_nanos());
