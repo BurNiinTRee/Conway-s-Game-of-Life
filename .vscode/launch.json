@@ -6,7 +6,8 @@
             "type": "gdb",
             "request": "launch",
             "target": "./target/debug/gol",
-            "cwd": "${workspaceRoot}"
+            "cwd": "${workspaceRoot}",
+            "preLaunchTask": "cargo"
         }
     ]
 }
